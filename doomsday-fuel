@@ -1,0 +1,177 @@
+'''
+The solution is determined by letting n approach infinity 
+  and outputing the steady state probabilities for a Markov chain.
+The input should be the probability matrix where the probability is in an integer
+  and the sum of the row is the denominator.
+The output will be a list of integer probabilities where the last value is the denominator.
+
+Uncomment the code at the bottom for the two test cases
+'''
+import fractions
+import math
+
+# Determine the absorbing states of the Markov chain
+def getTerm(matrix):
+    ''' Determine the absorbing states of the Markov chain
+    Parameter:
+        matrix (list of list (int))
+            Original input matrix as defined by the Markov probability chain.
+            The rows are the probability of entering their specific column in the next iteration
+            The matrix should not be a transposed matrix T
+    Returns:
+        term (list (int))
+            term is the list of indexes where the state (row) is an absorbtion row.
+            An absorbtion row is a row where the state can not be left
+            An absorbtion row is a row where the state must be enterable in a finite number of steps
+    '''
+
+    term = []
+    count = 0
+    for i in range(len(matrix)):
+        rowSum = 0
+        for j in range(len(matrix[0])):
+            rowSum += matrix[i][j]
+        if rowSum == 0:
+            term.append(count)
+            matrix[i][i] = 1
+        count += 1
+    return term
+
+
+# Format the matrix to a probability matrix
+def matrixSet(matrix):
+    ''' Format the matrix to a probability matrix
+    Parameter:
+        matrix (list of list (int))
+            Original input matrix as defined by the Markov probability chain.
+            The rows are the probability of entering their specific column in the next iteration
+            The matrix should not be a transposed matrix T
+    Returns:
+        floatMat (list of list(flaot))
+            Returns the Markov probability chain matrix, where each row's sum is equal to 1
+            The output is not the transposed matrix (transposed matrix's columns equal 1)
+    '''
+    floatMat = [[0.1 for x in range(len(matrix))] for y in range(len(matrix))]
+    for i in range(len(matrix)):
+        sumRow = 0
+        for j in range(len(matrix[0])):
+            sumRow += matrix[i][j]
+        if sumRow == 0:
+            matrix[i][i] = 1
+        else:
+            for j in range(len(matrix[0])):
+                val = matrix[i][j]
+                floatMat[i][j] = float(val) / sumRow
+
+    return floatMat
+
+
+def compute_lcm(x, y):
+    '''
+    Parameters:
+        x (int)
+        y (int)
+    Returns:
+        lcm (int)
+            least common multiple of x and y
+    '''
+    if x > y:
+        greater = x
+    else:
+        greater = y
+
+    while (True):
+        if ((greater % x == 0) and (greater % y == 0)):
+            lcm = greater
+            break
+        greater += 1
+
+    return lcm
+
+
+# Interate through steps n until the input probability is sufficiently equivalent to the output probability
+def steadyState(mat):
+    '''Interate through steps n until the input probability
+        is sufficiently equivalent to the output probability
+
+    Parameters:
+        mat (list of list (float))
+            The sum of each row of the matrix must be equal to 1
+    Returns:
+        s0 (list (float))
+            The steady state probability of each state
+    '''
+    height = len(mat)
+    width = len(mat[0])
+    abs_list = [1 for x in range(width)]
+    sub_list = [1 for x in range(width)]
+    transpose = [[mat[i][j] for i in range(height)] for j in range(width)]
+    s0 = [0 for j in range(width)]
+    s0[0] = 1  # initial state is 1
+    sub_list = s0
+    sn = [0 for j in range(width)]
+
+    while max(abs_list) > 0.00001:
+        for i in range(height):
+            for j in range(width):
+                sn[i] += transpose[i][j] * s0[j]
+
+        sub_list = [[s0[x] - sn[x] for x in range(width)]]
+        abs_list = [abs(sub_list[0][x]) for x in range(width)]
+        s0 = [sn[x] for x in range(width)]  # If you set them equal to each other, they take the same memory
+        sn = [0 for j in range(width)]
+    return s0
+
+
+def outputFormat(probList, term):
+    '''
+    Parameters:
+        probList (list (float))
+            The list of probabilities in decimal form where the sum is equal to 1
+        term (list (int))
+            The list of terminal states (absorbing states)
+
+    Returns:
+        outputArray (list (int))
+            The list of numerator of probabilities and the last value is the denominator
+    '''
+    currentLCM = 1
+
+    fracArray = [[0 for j in range(len(probList))] for i in
+                 range(2)]  # 2d array where row 0 is numerator, row 1 is denominator of probabilities
+    outputArray = [0 for j in range(
+        len(probList))]  # Added the last location to hosue the least common multiple of the denomintors
+
+    for j in range(len(probList)):  # Tune the 'limit_denomintor' to a reasonable value
+        fracArray[0][j] = fractions.Fraction(probList[j]).limit_denominator(100).numerator
+        fracArray[1][j] = fractions.Fraction(probList[j]).limit_denominator(100).denominator
+
+        currentLCM = compute_lcm(fracArray[1][j], currentLCM)
+
+    for j in range(len(fracArray[0])):
+        outputArray[j] = long(fracArray[0][j] * (currentLCM / fracArray[1][j]))
+
+    outputArray = [long(outputArray[x]) for x in term]
+
+    outputArray.append(long(currentLCM))
+    return outputArray
+
+
+def solution(mat):
+    import fractions
+    import math
+
+    termList = getTerm(mat)
+    matrixMod = matrixSet(mat)
+    probList = steadyState(matrixMod)
+    sol = outputFormat(probList, termList)
+    return sol
+
+
+##Test Case 1
+#origMatrix = [[0, 2, 1, 0, 0], [0, 0, 0, 3, 4], [0, 0, 0, 0, 0], [0, 0, 0, 0,0], [0, 0, 0, 0, 0]] #Test case 1
+#print(solution(origMatrix))
+
+##Test Case 2
+#origMatrix = [[0, 1, 0, 0, 0, 1], [4, 0, 0, 3, 2, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]] 
+#print(solution(origMatrix))
